@@ -49,6 +49,9 @@
 #include "AP_ExternalControl_Rover.h"
 #endif
 
+#define AP_BASIC_RPI_RUN_ENABLED 1
+#define AP_ADVANCED_RPI_RUN_ENABLED 0 
+
 // Configuration
 #include "defines.h"
 #include "config.h"

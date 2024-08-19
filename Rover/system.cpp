@@ -11,6 +11,7 @@ void Rover::init_ardupilot()
     notify.init();
     notify_mode(control_mode);
 
+#if AP_ADVANCED_RPI_RUN_ENABLED
     battery.init();
 
 #if AP_RPM_ENABLED
@@ -26,10 +27,11 @@ void Rover::init_ardupilot()
 
     // init baro before we start the GCS, so that the CLI baro test works
     barometer.init();
-
+#endif
     // setup telem slots with serial ports
     gcs().setup_uarts();
 
+#if AP_ADVANCED_RPI_RUN_ENABLED
 #if OSD_ENABLED
     osd.init();
 #endif
@@ -65,9 +67,11 @@ void Rover::init_ardupilot()
     // Do GPS init
     gps.set_log_gps_bit(MASK_LOG_GPS);
     gps.init();
+#endif
 
     ins.set_log_raw_bit(MASK_LOG_IMU_RAW);
 
+#if AP_ADVANCED_RPI_RUN_ENABLED
     init_rc_in();            // sets up rc channels deadzone
     g2.motors.init(get_frame_type());        // init motors including setting servo out channels ranges
     SRV_Channels::enable_aux_servos();
@@ -103,19 +107,21 @@ void Rover::init_ardupilot()
     // initialise precision landing
     init_precland();
 #endif
-
+#endif
     /*
       setup the 'main loop is dead' check. Note that this relies on
       the RC library being initialised.
      */
     hal.scheduler->register_timer_failsafe(failsafe_check_static, 1000);
 
+#if AP_ADVANCED_RPI_RUN_ENABLED
     // initialize SmartRTL
     g2.smart_rtl.init();
 
 #if AP_OAPATHPLANNER_ENABLED
     // initialise object avoidance
     g2.oa.init();
+#endif
 #endif
 
     set_mode(mode_initializing, ModeReason::INITIALISED);
@@ -140,10 +146,12 @@ void Rover::init_ardupilot()
     }
     set_mode(*initial_mode, ModeReason::INITIALISED);
 
+#if AP_ADVANCED_RPI_RUN_ENABLED
     // initialise rc channels
     rc().convert_options(RC_Channel::AUX_FUNC::ARMDISARM_UNUSED, RC_Channel::AUX_FUNC::ARMDISARM);
     rc().convert_options(RC_Channel::AUX_FUNC::SAVE_TRIM, RC_Channel::AUX_FUNC::TRIM_TO_CURRENT_SERVO_RC);
     rc().init();
+#endif
 
     rover.g2.sailboat.init();
 

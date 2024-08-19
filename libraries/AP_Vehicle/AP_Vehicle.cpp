@@ -4,6 +4,8 @@
 
 #include "AP_Vehicle.h"
 
+#include <../Rover/Rover.h>
+
 #include <AP_BLHeli/AP_BLHeli.h>
 #include <AP_Common/AP_FWVersion.h>
 #include <AP_Arming/AP_Arming.h>
@@ -344,10 +346,12 @@ void AP_Vehicle::setup()
     G_Dt = scheduler.get_loop_period_s();
 #endif
 
+#if AP_ADVANCED_RPI_RUN_ENABLED
     // this is here for Plane; its failsafe_check method requires the
     // RC channels to be set as early as possible for maximum
     // survivability.
     set_control_channels();
+#endif
 
 #if HAL_GCS_ENABLED
     // initialise serial manager as early as sensible to get
@@ -369,7 +373,7 @@ void AP_Vehicle::setup()
     networking.init();
 #endif
 
-#if AP_SCRIPTING_ENABLED
+#if AP_SCRIPTING_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
 #if AP_SCRIPTING_SERIALDEVICE_ENABLED
     // must be done now so ports are registered and drivers get set up properly
     // (in particular mavlink which checks during init_ardupilot())
@@ -383,17 +387,17 @@ void AP_Vehicle::setup()
     hal.scheduler->register_delay_callback(scheduler_delay_callback, 5);
 #endif
 
-#if HAL_MSP_ENABLED
+#if HAL_MSP_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     // call MSP init before init_ardupilot to allow for MSP sensors
     msp.init();
 #endif
 
-#if HAL_EXTERNAL_AHRS_ENABLED
+#if HAL_EXTERNAL_AHRS_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     // call externalAHRS init before init_ardupilot to allow for external sensors
     externalAHRS.init();
 #endif
 
-#if HAL_GENERATOR_ENABLED
+#if HAL_GENERATOR_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     generator.init();
 #endif
 
@@ -413,18 +417,18 @@ void AP_Vehicle::setup()
 #endif
 
     // init cargo gripper
-#if AP_GRIPPER_ENABLED
+#if AP_GRIPPER_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     AP::gripper().init();
 #endif
 
     // init_ardupilot is where the vehicle does most of its initialisation.
     init_ardupilot();
 
-#if AP_SCRIPTING_ENABLED
+#if AP_SCRIPTING_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     scripting.init();
 #endif // AP_SCRIPTING_ENABLED
 
-#if AP_AIRSPEED_ENABLED
+#if AP_AIRSPEED_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     airspeed.init();
     if (airspeed.enabled()) {
         airspeed.calibrate(true);
@@ -437,85 +441,85 @@ void AP_Vehicle::setup()
 #endif  // AP_AIRSPEED_ENABLED
 
 
-#if AP_SRV_CHANNELS_ENABLED
+#if AP_SRV_CHANNELS_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SRV_Channels::init();
 #endif
 
     // gyro FFT needs to be initialized really late
-#if HAL_GYROFFT_ENABLED
+#if HAL_GYROFFT_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
 #if AP_SCHEDULER_ENABLED
     gyro_fft.init(AP::scheduler().get_loop_rate_hz());
 #else
     gyro_fft.init(1000);
 #endif
 #endif
-#if HAL_RUNCAM_ENABLED
+#if HAL_RUNCAM_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     runcam.init();
 #endif
-#if HAL_HOTT_TELEM_ENABLED
+#if HAL_HOTT_TELEM_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     hott_telem.init();
 #endif
-#if HAL_VISUALODOM_ENABLED
+#if HAL_VISUALODOM_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     // init library used for visual position estimation
     visual_odom.init();
 #endif
 
-#if AP_VIDEOTX_ENABLED
+#if AP_VIDEOTX_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     vtx.init();
 #endif
 
-#if AP_SMARTAUDIO_ENABLED
+#if AP_SMARTAUDIO_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     smartaudio.init();
 #endif
 
-#if AP_TRAMP_ENABLED
+#if AP_TRAMP_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     tramp.init();
 #endif
 
-#if AP_PARAM_KEY_DUMP
+#if AP_PARAM_KEY_DUMP && AP_ADVANCED_RPI_RUN_ENABLED
     AP_Param::show_all(hal.console, true);
 #endif
 
     send_watchdog_reset_statustext();
 
-#if AP_OPENDRONEID_ENABLED
+#if AP_OPENDRONEID_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     opendroneid.init();
 #endif
 
 // init EFI monitoring
-#if HAL_EFI_ENABLED
+#if HAL_EFI_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     efi.init();
 #endif
 
-#if AP_TEMPERATURE_SENSOR_ENABLED
+#if AP_TEMPERATURE_SENSOR_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     temperature_sensor.init();
 #endif
 
-#if AP_KDECAN_ENABLED
+#if AP_KDECAN_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     kdecan.init();
 #endif
 
-#if AP_AIS_ENABLED
+#if AP_AIS_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     ais.init();
 #endif
 
-#if HAL_NMEA_OUTPUT_ENABLED
+#if HAL_NMEA_OUTPUT_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     nmea.init();
 #endif
 
-#if AP_FENCE_ENABLED
+#if AP_FENCE_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     fence.init();
 #endif
 
-#if AP_CUSTOMROTATIONS_ENABLED
+#if AP_CUSTOMROTATIONS_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     custom_rotations.init();
 #endif
 
-#if AP_FILTER_ENABLED
+#if AP_FILTER_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     filters.init();
 #endif
 
-#if HAL_WITH_ESC_TELEM && HAL_GYROFFT_ENABLED
+#if HAL_WITH_ESC_TELEM && HAL_GYROFFT_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     for (uint8_t i = 0; i<ESC_TELEM_MAX_ESCS; i++) {
         esc_noise[i].set_cutoff_frequency(2);
     }
@@ -533,7 +537,7 @@ void AP_Vehicle::setup()
     }
 #endif
 
-#if AP_IBUS_TELEM_ENABLED
+#if AP_IBUS_TELEM_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     ibus_telem.init();
 #endif
 }
@@ -601,80 +605,80 @@ SCHED_TASK_CLASS arguments:
 
  */
 const AP_Scheduler::Task AP_Vehicle::scheduler_tasks[] = {
-#if HAL_GYROFFT_ENABLED
+#if HAL_GYROFFT_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     FAST_TASK_CLASS(AP_GyroFFT,    &vehicle.gyro_fft,       sample_gyros),
 #endif
-#if AP_AIRSPEED_ENABLED
+#if AP_AIRSPEED_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Airspeed,  &vehicle.airspeed,       update,                   10, 100, 41),    // NOTE: the priority number here should be right before Plane's calc_airspeed_errors
 #endif
-#if COMPASS_CAL_ENABLED
+#if COMPASS_CAL_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(Compass,      &vehicle.compass,        cal_update,     100, 200, 75),
 #endif
     SCHED_TASK_CLASS(AP_Notify,    &vehicle.notify,         update,                   50, 300, 78),
-#if HAL_NMEA_OUTPUT_ENABLED
+#if HAL_NMEA_OUTPUT_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_NMEA_Output, &vehicle.nmea,         update,                   50, 50, 180),
 #endif
-#if HAL_RUNCAM_ENABLED
+#if HAL_RUNCAM_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_RunCam,    &vehicle.runcam,         update,                   50, 50, 200),
 #endif
-#if HAL_GYROFFT_ENABLED
+#if HAL_GYROFFT_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_GyroFFT,   &vehicle.gyro_fft,       update,                  400, 50, 205),
     SCHED_TASK_CLASS(AP_GyroFFT,   &vehicle.gyro_fft,       update_parameters,         1, 50, 210),
 #endif
 #if AP_INERTIALSENSOR_HARMONICNOTCH_ENABLED
     SCHED_TASK(update_dynamic_notch_at_specified_rate,      LOOP_RATE,                    200, 215),
 #endif
-#if AP_VIDEOTX_ENABLED
+#if AP_VIDEOTX_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_VideoTX,   &vehicle.vtx,            update,                    2, 100, 220),
 #endif
-#if AP_TRAMP_ENABLED
+#if AP_TRAMP_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Tramp,     &vehicle.tramp,          update,                   50,  50, 225),
 #endif
     SCHED_TASK(send_watchdog_reset_statustext,         0.1,     20, 225),
-#if HAL_WITH_ESC_TELEM
+#if HAL_WITH_ESC_TELEM && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_ESC_Telem, &vehicle.esc_telem,      update,                  100,  50, 230),
 #endif
-#if HAL_GENERATOR_ENABLED
+#if HAL_GENERATOR_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Generator, &vehicle.generator,      update,                   10,  50, 235),
 #endif
-#if AP_OPENDRONEID_ENABLED
+#if AP_OPENDRONEID_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_OpenDroneID, &vehicle.opendroneid,  update,                   10,  50, 236),
 #endif
-#if AP_NETWORKING_ENABLED
+#if AP_NETWORKING_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Networking, &vehicle.networking,    update,                   10,  50, 238),
 #endif
-#if OSD_ENABLED
+#if OSD_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK(publish_osd_info, 1, 10, 240),
 #endif
-#if AP_TEMPERATURE_SENSOR_ENABLED
+#if AP_TEMPERATURE_SENSOR_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_TemperatureSensor, &vehicle.temperature_sensor, update,        5, 50, 242),
 #endif
 #if HAL_INS_ACCELCAL_ENABLED
     SCHED_TASK(accel_cal_update,                                                      10, 100, 245),
 #endif
-#if AP_FENCE_ENABLED
+#if AP_FENCE_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AC_Fence,     &vehicle.fence,          update,                   10, 100, 248),
 #endif
-#if AP_AIS_ENABLED
+#if AP_AIS_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_AIS,       &vehicle.ais,            update,                    5, 100, 249),
 #endif
-#if HAL_EFI_ENABLED
+#if HAL_EFI_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_EFI,       &vehicle.efi,            update,                   50, 200, 250),
 #endif
-#if AP_GRIPPER_ENABLED
+#if AP_GRIPPER_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Gripper,   &vehicle.gripper,        update,                   10,  75, 251),
 #endif
     SCHED_TASK(one_Hz_update,                                                         1, 100, 252),
-#if HAL_WITH_ESC_TELEM && HAL_GYROFFT_ENABLED
+#if HAL_WITH_ESC_TELEM && HAL_GYROFFT_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK(check_motor_noise,      5,     50, 252),
 #endif
-#if AP_FILTER_ENABLED
+#if AP_FILTER_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Filters,   &vehicle.filters,        update,                   1, 100, 252),
 #endif
-#if AP_STATS_ENABLED
+#if AP_STATS_ENABLED 
     SCHED_TASK_CLASS(AP_Stats,             &vehicle.stats,            update,           1, 100, 252),
 #endif
-#if AP_ARMING_ENABLED
+#if AP_ARMING_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK(update_arming,          1,     50, 253),
 #endif
 };
