@@ -3,9 +3,10 @@
 #include <SITL/SITL.h>
 #include <stdio.h>
 #include <GCS_MAVLink/GCS.h>
+#include <../Rover/Rover.h>
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32 || AP_BASIC_RPI_RUN_ENABLED
 
 static float sim_rand_float(void)
 {

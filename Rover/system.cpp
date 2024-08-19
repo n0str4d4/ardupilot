@@ -282,16 +282,27 @@ bool Rover::set_mode(Mode::Number new_mode, ModeReason reason)
 
 void Rover::startup_INS(void)
 {
+#if AP_ADVANCED_RPI_RUN_ENABLED
     gcs().send_text(MAV_SEVERITY_INFO, "Beginning INS calibration. Do not move vehicle");
+#else
+    gcs().send_text(MAV_SEVERITY_INFO, "Beginning Simulated INS calibration. Do not move vehicle");
+#endif
+
     hal.scheduler->delay(100);
 
+#if AP_ADVANCED_RPI_RUN_ENABLED
     ahrs.init();
     // say to EKF that rover only move by going forward
     ahrs.set_fly_forward(true);
     ahrs.set_vehicle_class(AP_AHRS::VehicleClass::GROUND);
+#endif
 
     ins.init(scheduler.get_loop_rate_hz());
+
+#if AP_ADVANCED_RPI_RUN_ENABLED
     ahrs.reset();
+#endif
+
 }
 
 // update notify with mode change

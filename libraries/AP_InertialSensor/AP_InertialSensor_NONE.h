@@ -7,7 +7,10 @@
  Its a rip-off of _SITL with all the sitl stuff removed or replaced with constants.
 */
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#include <../Rover/Rover.h>
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32 || AP_BASIC_RPI_RUN_ENABLED
+
 #include "AP_InertialSensor.h"
 #include "AP_InertialSensor_Backend.h"
 
