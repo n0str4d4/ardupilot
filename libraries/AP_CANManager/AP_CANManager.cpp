@@ -47,6 +47,7 @@
 #define LOG_TAG "CANMGR"
 #define LOG_BUFFER_SIZE 1024
 
+//extern const AP_HAL::HAL& hal;
 extern const AP_HAL::HAL& hal;
 
 // table of user settable parameters
@@ -124,6 +125,7 @@ void AP_CANManager::init()
     // we need to mutate the HAL to install new CAN interfaces
     AP_HAL::HAL& hal_mutable = AP_HAL::get_HAL_mutable();
 
+    //AP_HAL::HAL& hal_mutable = AP_HAL::get_HAL();
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if (AP::sitl() == nullptr) {
         AP_HAL::panic("CANManager: SITL not initialised!");
@@ -135,12 +137,16 @@ void AP_CANManager::init()
         _log_pos = 0;
     }
 
-    if (hal_mutable.can[0] == nullptr) {
-            // So if this interface is not allocated allocate it here,
-            // also pass the index of the CANBus
-            // Maybe should use Linux::CANIface(i) for instantiation
-            hal_mutable.can[0] = NEW_NOTHROW Linux::CANIface(0);
-        }
+    //std::unique_ptr<Linux::CANIface> can_iface(new Linux::CANIface(0));
+    hal_mutable.can[0] = NEW_NOTHROW Linux::CANIface(0);//can_iface;
+
+
+    // if (hal_mutable.can[0] == nullptr) {
+    //         // So if this interface is not allocated allocate it here,
+    //         // also pass the index of the CANBus
+    //         // Maybe should use Linux::CANIface(i) for instantiation
+    //         hal_mutable.can[0] = NEW_NOTHROW Linux::CANIface(0);
+    //     }
 
     bool can_initialised = false;
 
@@ -149,12 +155,85 @@ void AP_CANManager::init()
 
     if (!can_initialised) {
             log_text(AP_CANManager::LOG_ERROR, LOG_TAG, "Failed to initialise CAN Interface %d", 0);
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Failed to initialise CAN Interface 0" );
+
     }
+
+    else {
+
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Initialised CAN Interface 0 Successfully" );
+
 
     log_text(AP_CANManager::LOG_INFO, LOG_TAG, "CAN Interface %d initialized well", 0);
     log_text(AP_CANManager::LOG_INFO, LOG_TAG,"AP CAN Manager is setup by just initializing Can0 Interface");
 
+//================================= sending can frame upon ap_manager init 
+    // Prepare a CAN frame to send
+    AP_HAL::CANFrame frame;
+    frame.id = 0x123;   // Example CAN ID
+    frame.dlc = 8;      // Data length code (number of bytes)
+    frame.data[0] = 0x01;
+    frame.data[1] = 0x02;
+    frame.data[2] = 0x03;
+    frame.data[3] = 0x04;
+    frame.data[4] = 0x05;
+    frame.data[5] = 0x06;
+    frame.data[6] = 0x07;
+    frame.data[7] = 0x08;
 
+    // Send the CAN frame
+    int16_t send_status = hal_mutable.can[0]->send(frame, 0, AP_HAL::CANIface::CanIOFlags());
+
+    if (send_status > 0) {
+        hal_mutable.console->printf("CAN frame sent successfully\n");
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - CANManager CAN frame sent successfully\n" );
+
+    } else if (send_status == 0) {
+        hal_mutable.console->printf("CAN Tx buffer is full\n");
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - CANManager CAN Tx buffer is full\n" );
+
+    } else {
+        hal_mutable.console->printf("Failed to send CAN frame\n");
+                            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager Failed to send CAN frame\n");
+
+    }
+
+        hal_mutable.scheduler->delay(5000);
+
+
+    for (int ij = 0; ij < 10; ij++){
+    // Attempt to receive a CAN frame
+    AP_HAL::CANFrame received_frame;
+    uint64_t timestamp;
+    AP_HAL::CANIface::CanIOFlags flags;
+
+    int16_t recv_status = hal_mutable.can[0]->receive(received_frame, timestamp, flags);
+
+    if (recv_status > 0) {
+       hal_mutable.console->printf("Received CAN frame: ID=0x%03X, Data=", received_frame.id);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager Received CAN frame\n");
+
+        for (int i = 0; i < received_frame.dlc; i++) {
+            hal_mutable.console->printf("%02X ", received_frame.data[i]);
+        }
+        hal_mutable.console->printf("\n");
+    } else if (recv_status == 0) {
+        hal_mutable.console->printf("No CAN frame available\n");
+       GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager No CAN frame available\n");
+
+    } else {
+        hal_mutable.console->printf("Failed to receive CAN frame\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager Failed to receive CAN frame\n");
+
+    }
+
+    // Add a delay to avoid flooding the CAN bus
+    hal_mutable.scheduler->delay(1000);
+    }
+
+    //hal = AP_HAL::get_HAL();
+
+}
 
     
 
@@ -502,6 +581,7 @@ bool AP_CANManager::handle_can_forward(mavlink_channel_t chan, const mavlink_com
         }
     }
 
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - You have reached the AP_CANManager::handle_can_forward()" );
     return true;
 }
 
@@ -563,7 +643,10 @@ void AP_CANManager::handle_can_frame(const mavlink_message_t &msg)
         break;
     }
     }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - You have reached the AP_CANManager::handle_can(), next will be the buffer processing and CAN Frame Sending on the Bus" );
+
     process_frame_buffer();
+
 }
 
 /*
@@ -687,6 +770,7 @@ void AP_CANManager::handle_can_filter_modify(const mavlink_message_t &msg)
  */
 void AP_CANManager::can_frame_callback(uint8_t bus, const AP_HAL::CANFrame &frame)
 {
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Inside can_frame_callback() - CAN Frame is detected on the bus" );
     WITH_SEMAPHORE(can_forward.sem);
     if (can_forward.frame_counter++ == 100) {
         // check every 100 frames for disabling CAN_FRAME send
@@ -718,11 +802,15 @@ void AP_CANManager::can_frame_callback(uint8_t bus, const AP_HAL::CANFrame &fram
     }
     const uint8_t data_len = AP_HAL::CANFrame::dlcToDataLength(frame.dlc);
     if (frame.isCanFDFrame()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Inside can_frame_callback() - IT is a CANFD Frame" );
+
         if (HAVE_PAYLOAD_SPACE(can_forward.chan, CANFD_FRAME)) {
             mavlink_msg_canfd_frame_send(can_forward.chan, can_forward.system_id, can_forward.component_id,
                                          bus, data_len, frame.id, const_cast<uint8_t*>(frame.data));
         }
     } else {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Inside can_frame_callback() - IT is a CAN Frame" );
+
         if (HAVE_PAYLOAD_SPACE(can_forward.chan, CAN_FRAME)) {
             mavlink_msg_can_frame_send(can_forward.chan, can_forward.system_id, can_forward.component_id,
                                        bus, data_len, frame.id, const_cast<uint8_t*>(frame.data));
@@ -730,6 +818,54 @@ void AP_CANManager::can_frame_callback(uint8_t bus, const AP_HAL::CANFrame &fram
     }
 }
 #endif // HAL_GCS_ENABLED
+
+
+
+void AP_CANManager::can_frame_receive_loop(){
+
+    //AP_HAL::HAL& hal_mutable = AP_HAL::get_HAL();
+    // Attempt to receive a CAN frame
+    AP_HAL::CANFrame received_frame;
+    uint64_t timestamp;
+    AP_HAL::CANIface::CanIOFlags flags;
+
+    int16_t recv_status = hal.can[0]->receive(received_frame, timestamp, flags);
+
+
+    if (recv_status > 0) {
+       hal.console->printf("Received CAN frame: ID=0x%03X, Data=", received_frame.id);
+        
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager Received CAN frame\n");
+        
+        const uint8_t data_len = AP_HAL::CANFrame::dlcToDataLength(received_frame.dlc);
+        
+        //print received bytes 
+        for (int i = 0; i < received_frame.dlc; i++) {
+            hal.console->printf("%02X ", received_frame.data[i]);
+            hal.console->printf("\n");
+            }
+        //we haven't received the can forward command from GCS yet
+        if(can_forward.chan != -1)
+            {
+
+        mavlink_msg_can_frame_send(can_forward.chan, can_forward.system_id, can_forward.component_id,
+                                     0, data_len, received_frame.id, const_cast<uint8_t*>(received_frame.data));
+            }
+        } else if (recv_status == 0) {
+        hal.console->printf("No CAN frame available\n");
+       GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager No CAN frame available\n");
+
+    } else {
+        hal.console->printf("Failed to receive CAN frame\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager Failed to receive CAN frame\n");
+
+    }
+
+    // Add a delay to avoid flooding the CAN bus
+    hal.scheduler->delay(1000);
+ 
+
+}
 
 AP_CANManager& AP::can()
 {

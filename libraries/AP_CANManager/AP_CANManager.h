@@ -109,6 +109,7 @@ public:
     bool handle_can_forward(mavlink_channel_t chan, const mavlink_command_int_t &packet, const mavlink_message_t &msg);
     void handle_can_frame(const mavlink_message_t &msg);
     void handle_can_filter_modify(const mavlink_message_t &msg);
+    void can_frame_receive_loop();
 #endif
 
 private:

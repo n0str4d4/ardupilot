@@ -129,7 +129,7 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
     SCHED_TASK(ekf_check,              10,    100,  87),
     SCHED_TASK_CLASS(ModeSmartRTL,        &rover.mode_smartrtl,    save_position,   3,  200,  90),
 #endif
-    SCHED_TASK(one_second_loop,         1,   1500,  96),
+    SCHED_TASK(one_second_loop,         1,   2000,  96),
 #if HAL_SPRAYER_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AC_Sprayer,          &rover.g2.sprayer,       update,          3,  90,  99),
 #endif
@@ -465,6 +465,8 @@ void Rover::one_second_loop(void)
 #endif
     // cope with changes to mavlink system ID
     mavlink_system.sysid = g.sysid_this_mav;
+    
+    AP::can().can_frame_receive_loop();
 
 #if AP_ADVANCED_RPI_RUN_ENABLED
     // attempt to update home position and baro calibration if not armed:
