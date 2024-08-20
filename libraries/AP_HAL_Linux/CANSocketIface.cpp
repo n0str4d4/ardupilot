@@ -272,7 +272,7 @@ void CANIface::_pollWrite()
         WITH_SEMAPHORE(sem);
         const CanTxItem tx = _tx_queue.top();
         uint64_t curr_time = AP_HAL::micros64();
-        if (tx.deadline >= curr_time) {
+        if (tx.deadline <= curr_time) {
             // hal.console->printf("%x TDEAD: %lu CURRT: %lu DEL: %lu\n",tx.frame.id,  tx.deadline, curr_time, tx.deadline-curr_time);
             const int res = _write(tx.frame);
             if (res == 1) {                   // Transmitted successfully

@@ -15,10 +15,12 @@
 /*
  *   AP_CANManager - board specific configuration for CAN interface
  */
-
-#include <AP_HAL/AP_HAL.h>
 #include <AP_Common/AP_Common.h>
 #include "AP_CANManager.h"
+#include <../Rover/Rover.h>
+#include <AP_HAL_Linux/CANSocketIface.h>
+#include <AP_HAL/CANIface.h>
+#include <AP_HAL/AP_HAL.h>
 
 #if HAL_CANMANAGER_ENABLED
 
@@ -114,6 +116,51 @@ AP_CANManager::AP_CANManager()
     _singleton = this;
 }
 
+#if AP_BASIC_RPI_RUN_ENABLED
+void AP_CANManager::init()
+{
+    WITH_SEMAPHORE(_sem);
+
+    // we need to mutate the HAL to install new CAN interfaces
+    AP_HAL::HAL& hal_mutable = AP_HAL::get_HAL_mutable();
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if (AP::sitl() == nullptr) {
+        AP_HAL::panic("CANManager: SITL not initialised!");
+    }
+#endif
+    // We only allocate log buffer only when under debug
+    if (_loglevel != AP_CANManager::LOG_NONE) {
+        _log_buf = NEW_NOTHROW char[LOG_BUFFER_SIZE];
+        _log_pos = 0;
+    }
+
+    if (hal_mutable.can[0] == nullptr) {
+            // So if this interface is not allocated allocate it here,
+            // also pass the index of the CANBus
+            // Maybe should use Linux::CANIface(i) for instantiation
+            hal_mutable.can[0] = NEW_NOTHROW Linux::CANIface(0);
+        }
+
+    bool can_initialised = false;
+
+    can_initialised = hal_mutable.can[0]->init(500000, AP_HAL::CANIface::NormalMode);
+        
+
+    if (!can_initialised) {
+            log_text(AP_CANManager::LOG_ERROR, LOG_TAG, "Failed to initialise CAN Interface %d", 0);
+    }
+
+    log_text(AP_CANManager::LOG_INFO, LOG_TAG, "CAN Interface %d initialized well", 0);
+    log_text(AP_CANManager::LOG_INFO, LOG_TAG,"AP CAN Manager is setup by just initializing Can0 Interface");
+
+
+
+    
+
+}    
+
+#else
 #if !AP_TEST_DRONECAN_DRIVERS
 void AP_CANManager::init()
 {
@@ -152,7 +199,8 @@ void AP_CANManager::init()
         if (hal_mutable.can[i] == nullptr) {
             // So if this interface is not allocated allocate it here,
             // also pass the index of the CANBus
-            hal_mutable.can[i] = NEW_NOTHROW HAL_CANIface(i);
+            // Maybe should use Linux::CANIface(i) for instantiation
+            hal_mutable.can[i] = NEW_NOTHROW Linux::CANIface(i);
         }
 
         // Initialise the interface we just allocated
@@ -194,7 +242,7 @@ void AP_CANManager::init()
 
         if (_num_drivers >= HAL_MAX_CAN_PROTOCOL_DRIVERS) {
             // We are exceeding number of drivers,
-            // this can't be happening time to panic
+            // this can't be happening 0time to panic
             AP_BoardConfig::config_error("Max number of CAN Drivers exceeded\n\r");
         }
 
@@ -237,7 +285,7 @@ void AP_CANManager::init()
     }
 
     for (uint8_t drv_num = 0; drv_num < HAL_MAX_CAN_PROTOCOL_DRIVERS; drv_num++) {
-        //initialise all the Drivers
+        // initialise all the Drivers
 
         // Cache the driver type, initialized or not, so we can detect that it is in the params at boot via get_driver_type().
         // This allows drivers that are initialized by CANSensor instead of CANManager to know if they should init or not
@@ -280,6 +328,7 @@ void AP_CANManager::init()
         }
     }
 }
+#endif
 #endif
 
 /*

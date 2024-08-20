@@ -417,7 +417,7 @@
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NONE
 // we can use virtual CAN on native builds
-#define HAL_LINUX_USE_VIRTUAL_CAN 1
+#define HAL_LINUX_USE_VIRTUAL_CAN 0
 #else
 #define HAL_LINUX_USE_VIRTUAL_CAN 0
 #endif
