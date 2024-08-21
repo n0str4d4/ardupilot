@@ -615,6 +615,8 @@ void AP_CANManager::handle_can_frame(const mavlink_message_t &msg)
 
     switch (msg.msgid) {
     case MAVLINK_MSG_ID_CAN_FRAME: {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - You have reached the AP_CANManager::handle_can(), Based on Msg.Id - it is a CAN Frame" );
+
         mavlink_can_frame_t p;
         mavlink_msg_can_frame_decode(&msg, &p);
         if (p.bus >= HAL_NUM_CAN_IFACES || hal.can[p.bus] == nullptr) {
@@ -629,6 +631,8 @@ void AP_CANManager::handle_can_frame(const mavlink_message_t &msg)
         break;
     }
     case MAVLINK_MSG_ID_CANFD_FRAME: {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - You have reached the AP_CANManager::handle_can(), Based on Msg.Id - it is a CANFD Frame" );
+
         mavlink_canfd_frame_t p;
         mavlink_msg_canfd_frame_decode(&msg, &p);
         if (p.bus >= HAL_NUM_CAN_IFACES || hal.can[p.bus] == nullptr) {
@@ -657,14 +661,19 @@ void AP_CANManager::process_frame_buffer(void)
     while (frame_buffer) {
         WITH_SEMAPHORE(_sem);
         struct BufferFrame frame;
-        const uint16_t timeout_us = 2000;
+        //const uint16_t timeout_us = 2000;
         if (!frame_buffer->peek(frame)) {
             // no frames in the queue
             break;
         }
+        //const int16_t retcode = hal.can[frame.bus]->send(frame.frame,
+                                                         //AP_HAL::micros64() + timeout_us,
+                                                         //AP_HAL::CANIface::IsMAVCAN);
+
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Sending CAN Frame on the bus - Inside Process_Frame_Buffer()");
         const int16_t retcode = hal.can[frame.bus]->send(frame.frame,
-                                                         AP_HAL::micros64() + timeout_us,
-                                                         AP_HAL::CANIface::IsMAVCAN);
+                                                         0,
+                                                         AP_HAL::CANIface::CanIOFlags());                                    
         if (retcode == 0) {
             // no space in the CAN output slots, try again later
             break;
