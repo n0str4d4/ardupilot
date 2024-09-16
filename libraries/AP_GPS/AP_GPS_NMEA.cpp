@@ -801,6 +801,7 @@ void AP_GPS_NMEA::parse_versiona_field(uint16_t term_number, const char *term)
 bool
 AP_GPS_NMEA::_detect(struct NMEA_detect_state &state, uint8_t data)
 {
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Trying to check if the data received from the GPS is of type NMEA");
 	switch (state.step) {
 	case 0:
 		state.ck = 0;

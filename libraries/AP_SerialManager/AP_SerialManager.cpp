@@ -35,10 +35,10 @@
 extern const AP_HAL::HAL& hal;
 
 #ifndef DEFAULT_SERIAL0_PROTOCOL
-#define DEFAULT_SERIAL0_PROTOCOL SerialProtocol_MAVLink2
+#define DEFAULT_SERIAL0_PROTOCOL SerialProtocol_GPS
 #endif
 #ifndef DEFAULT_SERIAL0_BAUD
-#define DEFAULT_SERIAL0_BAUD AP_SERIALMANAGER_CONSOLE_BAUD
+#define DEFAULT_SERIAL0_BAUD 9600 //AP_SERIALMANAGER_CONSOLE_BAUD
 #endif
 #ifdef HAL_SERIAL0_PROTOCOL
 #error "Please use DEFAULT_SERIAL0_PROTOCOL"
@@ -423,30 +423,35 @@ void AP_SerialManager::init_console()
 // init - // init - initialise serial ports
 void AP_SerialManager::init()
 {
+
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP_SerialManager Init()");
     // always reset passthru port2 on boot
     passthru_port2.set_and_save_ifchanged(-1);
 
-#ifdef HAL_OTG1_CONFIG
-    /*
-      prevent users from changing USB protocol to other than
-      MAVLink. This fixes an issue where users trying to get SLCAN
-      change SERIAL0_PROTOCOL to 22 and find they can no longer connect
-     */
-    if (state[0].protocol != SerialProtocol_MAVLink &&
-        state[0].protocol != SerialProtocol_MAVLink2) {
-        state[0].protocol.set(SerialProtocol_MAVLink2);
-    }
-#endif
+// #ifdef HAL_OTG1_CONFIG
+//     /*
+//       prevent users from changing USB protocol to other than
+//       MAVLink. This fixes an issue where users trying to get SLCAN
+//       change SERIAL0_PROTOCOL to 22 and find they can no longer connect
+//      */
+//     if (state[0].protocol != SerialProtocol_MAVLink &&
+//         state[0].protocol != SerialProtocol_MAVLink2) {
+//         state[0].protocol.set(SerialProtocol_MAVLink2);
+//     }
+// #endif
 
-    init_console();
+    //init_console();
 
     // initialise serial ports
-    for (uint8_t i=1; i<SERIALMANAGER_NUM_PORTS; i++) {
+    for (uint8_t i=0; i<SERIALMANAGER_NUM_PORTS; i++) {
         auto *uart = hal.serial(i);
 
         state[i].idx = i;
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Within AP_SerialManager Init() Loop ");
 
         if (uart != nullptr) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Within AP_SerialManager Init() Loop - uart %d is != nullptr ", i);
+
             set_options(i);
             switch (state[i].protocol) {
                 case SerialProtocol_None:
@@ -479,10 +484,21 @@ void AP_SerialManager::init()
                     // begin is handled by AP_Frsky_telem library
                     break;
                 case SerialProtocol_GPS:
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UART # %d Initialization for type GPS Protocol - baudrate = %d - BufRX = %d - BufTX = %d",i,state[i].baudrate(), AP_SERIALMANAGER_GPS_BUFSIZE_RX, AP_SERIALMANAGER_GPS_BUFSIZE_TX );
+                    //uart->set_options()
+                    uart->begin(9600,
+                                            0,
+                                            0);
+                    break;
                 case SerialProtocol_GPS2:
-                    uart->begin(state[i].baudrate(),
-                                         AP_SERIALMANAGER_GPS_BUFSIZE_RX,
-                                         AP_SERIALMANAGER_GPS_BUFSIZE_TX);
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UART # %d Initialization for type GPS Protocol - baudrate = %d - BufRX = %d - BufTX = %d",i,state[i].baudrate(), AP_SERIALMANAGER_GPS_BUFSIZE_RX, AP_SERIALMANAGER_GPS_BUFSIZE_TX );
+                    // uart->begin(state[i].baudrate(),
+                    //                      AP_SERIALMANAGER_GPS_BUFSIZE_RX,
+                    //                      AP_SERIALMANAGER_GPS_BUFSIZE_TX);
+                    uart->begin(9600,
+                                            0,
+                                            0);
+
                     break;
                 case SerialProtocol_AlexMos:
                     // Note baudrate is hardcoded to 115200

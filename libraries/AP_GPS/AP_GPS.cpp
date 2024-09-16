@@ -71,7 +71,7 @@
 extern const AP_HAL::HAL &hal;
 
 // baudrates to try to detect GPSes with
-const uint32_t AP_GPS::_baudrates[] = {9600U, 115200U, 4800U, 19200U, 38400U, 57600U, 230400U, 460800U};
+const uint32_t AP_GPS::_baudrates[] = {38600U, 9600U, 115200U, 4800U, 19200U, 38400U, 57600U, 230400U, 460800U};
 
 // initialisation blobs to send to the GPS to try to get it into the
 // right mode.
@@ -313,23 +313,39 @@ bool AP_GPS::needs_uart(GPS_Type type) const
 /// Startup initialisation.
 void AP_GPS::init()
 {
+    gcs().send_text(MAV_SEVERITY_INFO, "Beginning GPS Init. Do not move vehicle");
     // set the default for the first GPS according to define:
-    params[0].type.set_default(HAL_GPS1_TYPE_DEFAULT);
+    // params[0].type.set_and_default(GPS_TYPE_AUTO);
+    params[0].type.set_and_default(GPS_TYPE_NMEA);
 
     convert_parameters();
 
     // Set new primary param based on old auto_switch use second option
-    if ((_auto_switch.get() == 3) && !_primary.configured()) {
-        _primary.set_and_save(1);
-        _auto_switch.set_and_save(0);
-    }
+    // if ((_auto_switch.get() == 3) && !_primary.configured()) {
+    //     _primary.set_and_save(1);
+    //     _auto_switch.set_and_save(0);
+    // }
+
+    _primary.set_and_default(0);
+    _auto_switch.set_and_save(0);
 
     // search for serial ports with gps protocol
     const auto &serial_manager = AP::serialmanager();
     uint8_t uart_idx = 0;
+    
+    //_port[0] = hal.serial(0)->begin(9600);
     for (uint8_t i=0; i<ARRAY_SIZE(params); i++) {
         if (needs_uart(params[i].type)) {
             _port[i] = serial_manager.find_serial(AP_SerialManager::SerialProtocol_GPS, uart_idx);
+            //_port[i] = hal.serial()
+            if(_port[i] != nullptr){
+            gcs().send_text(MAV_SEVERITY_INFO, "FOUND SERIAL PORT WITH GPS PROTOCOL at index %d", uart_idx);
+
+            //gcs().send_text(MAV_SEVERITY_INFO, "FOUND SERIAL PORT WITH GPS PROTOCOL at index %d");
+            // _port[i]->begin(9600);
+            // _port[i]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+            //_port[i]->begin(9600);
+            }
             uart_idx++;
         }
     }
@@ -604,8 +620,10 @@ void AP_GPS::detect_instance(uint8_t instance)
     state[instance].hdop = GPS_UNKNOWN_DOP;
     state[instance].vdop = GPS_UNKNOWN_DOP;
 
+    
     AP_GPS_Backend *new_gps = _detect_instance(instance);
     if (new_gps == nullptr) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Could not detect instance, no backend assigned to instance");
         return;
     }
 
@@ -626,10 +644,22 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
     struct detect_state *dstate = &detect_state[instance];
 
     const auto type = params[instance].type;
+     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "within _detect_instance(), with instance type of %d", 
+        params[instance].type.get());
 
     switch (GPS_Type(type)) {
     // user has to explicitly set the MAV type, do not use AUTO
     // do not try to detect the MAV type, assume it's there
+    case GPS_TYPE_NMEA:
+    {
+        _port[instance]->begin(9600,0,0);
+        _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+        uint16_t bytecount = MIN(8192U, _port[instance]->available());
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "bytecount returned from _port[instance]-> available is %d bytes", bytecount );
+        //AP_GPS_NMEA::_detect(dstate->nmea_detect_state, data);
+        return NEW_NOTHROW AP_GPS_NMEA(*this, params[instance], state[instance], _port[instance]);
+    }
+
     case GPS_TYPE_MAV:
 #if AP_GPS_MAV_ENABLED
         dstate->auto_detected_baud = false; // specified, not detected
@@ -666,6 +696,8 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
 
     if (_port[instance] == nullptr) {
         // UART not available
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UART Not Available for instance # %d", instance);
+
         return nullptr;
     }
 
@@ -675,6 +707,8 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
     const uint32_t now = AP_HAL::millis();
 
     if (now - dstate->last_baud_change_ms > GPS_BAUD_TIME_MS) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Trying next baud rate in autodetection");
+
         // try the next baud rate
         // incrementing like this will skip the first element in array of bauds
         // this is okay, and relied upon
@@ -704,6 +738,10 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
     }
 
     if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Sending blob update for instance");
+        // _port[instance]->begin(9600, 0, 0);
+        // _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+
         send_blob_update(instance);
     }
 
@@ -728,12 +766,14 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
         break;
     }
 
-    if (initblob_state[instance].remaining != 0) {
-        // don't run detection engines if we haven't sent out the initblobs
-        return nullptr;
-    }
+    // if (initblob_state[instance].remaining != 0) {
+    //     // don't run detection engines if we haven't sent out the initblobs
+    //     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "initblob_state[instance].remaining = 0, returning nullptr");
+    //     return nullptr;
+    // }
 
     uint16_t bytecount = MIN(8192U, _port[instance]->available());
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "bytecount returned from _port[instance]-> available is %d bytes", bytecount );
 
     while (bytecount-- > 0) {
         const uint8_t data = _port[instance]->read();
@@ -796,6 +836,7 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
 #endif
                     type == GPS_TYPE_ALLYSTAR) &&
                    AP_GPS_NMEA::_detect(dstate->nmea_detect_state, data)) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GPS Backend of type GPS NMEA is bein created and returned");
             return NEW_NOTHROW AP_GPS_NMEA(*this, params[instance], state[instance], _port[instance]);
         }
 #endif //AP_GPS_NMEA_ENABLED
@@ -835,7 +876,12 @@ bool AP_GPS::should_log() const
  */
 void AP_GPS::update_instance(uint8_t instance)
 {
+    //char message[200];
     const auto type = params[instance].type;
+    //snprintf(message, sizeof(message), "Updating GPS Instance of type");
+
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "INSIDE THE GPS Update_Instance Function");
+    
     if (type == GPS_TYPE_HIL) {
         // in HIL, leave info alone
         return;
@@ -855,6 +901,8 @@ void AP_GPS::update_instance(uint8_t instance)
     if (drivers[instance] == nullptr) {
         // we don't yet know the GPS type of this one, or it has timed
         // out and needs to be re-initialised
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "No Driver Found For Instance %d, Calling detect_instance()", instance);
+
         detect_instance(instance);
         return;
     }
@@ -865,6 +913,10 @@ void AP_GPS::update_instance(uint8_t instance)
 
     // we have an active driver for this instance
     bool result = drivers[instance]->read();
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "result from nmea driver read is %d", result);
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Another Result from driver read \n");
+
+
     uint32_t tnow = AP_HAL::millis();
 
     // if we did not get a message, and the idle timer of 2 seconds
@@ -908,6 +960,8 @@ void AP_GPS::update_instance(uint8_t instance)
         // announce the GPS type once
         if (!state[instance].announced_detection) {
             state[instance].announced_detection = true;
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Announcing GPS Type Once \n");
+
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "GPS %d: detected %s", instance + 1, drivers[instance]->name());
         }
 

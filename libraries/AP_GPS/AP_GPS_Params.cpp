@@ -28,7 +28,7 @@ const AP_Param::GroupInfo AP_GPS::Params::var_info[] = {
     // @Values: 0:None,1:AUTO,2:uBlox,5:NMEA,6:SiRF,7:HIL,8:SwiftNav,9:DroneCAN,10:SBF,11:GSOF,13:ERB,14:MAVLink,15:NOVA,16:HemisphereNMEA,17:uBlox-MovingBaseline-Base,18:uBlox-MovingBaseline-Rover,19:MSP,20:AllyStar,21:ExternalAHRS,22:DroneCAN-MovingBaseline-Base,23:DroneCAN-MovingBaseline-Rover,24:UnicoreNMEA,25:UnicoreMovingBaselineNMEA,26:SBF-DualAntenna
     // @RebootRequired: True
     // @User: Advanced
-    AP_GROUPINFO_FLAGS("TYPE",    1, AP_GPS::Params, type, 0, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("TYPE",    1, AP_GPS::Params, type, 5, AP_PARAM_FLAG_ENABLE),
 
     // @Param: GNSS_MODE
     // @DisplayName: GNSS system configuration
