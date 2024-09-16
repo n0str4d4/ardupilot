@@ -479,6 +479,9 @@ void AP_SerialManager::init()
                     // begin is handled by AP_Frsky_telem library
                     break;
                 case SerialProtocol_GPS:
+                    uart->begin(9600);
+                    uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+                    break;
                 case SerialProtocol_GPS2:
                     uart->begin(state[i].baudrate(),
                                          AP_SERIALMANAGER_GPS_BUFSIZE_RX,

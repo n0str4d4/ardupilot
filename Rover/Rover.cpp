@@ -83,9 +83,10 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
 #endif
 #if AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK(set_servos,            400,    200,  15),
-    SCHED_TASK_CLASS(AP_GPS,              &rover.gps,              update,         50,  300,  18),
     SCHED_TASK_CLASS(AP_Baro,             &rover.barometer,        update,         10,  200,  21),
 #endif
+    SCHED_TASK_CLASS(AP_GPS,              &rover.gps,              update,         50,  300,  18),
+
 #if AP_BEACON_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Beacon,           &rover.g2.beacon,        update,         50,  200,  24),
 #endif

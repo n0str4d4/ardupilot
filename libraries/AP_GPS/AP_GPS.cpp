@@ -71,7 +71,7 @@
 extern const AP_HAL::HAL &hal;
 
 // baudrates to try to detect GPSes with
-const uint32_t AP_GPS::_baudrates[] = {9600U, 115200U, 4800U, 19200U, 38400U, 57600U, 230400U, 460800U};
+const uint32_t AP_GPS::_baudrates[] = {38600, 9600U, 115200U, 4800U, 19200U, 38400U, 57600U, 230400U, 460800U};
 
 // initialisation blobs to send to the GPS to try to get it into the
 // right mode.
@@ -314,7 +314,8 @@ bool AP_GPS::needs_uart(GPS_Type type) const
 void AP_GPS::init()
 {
     // set the default for the first GPS according to define:
-    params[0].type.set_default(HAL_GPS1_TYPE_DEFAULT);
+    // params[0].type.set_default(HAL_GPS1_TYPE_DEFAULT);
+    params[0].type.set_default(GPS_TYPE_NMEA);
 
     convert_parameters();
 
@@ -728,10 +729,10 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
         break;
     }
 
-    if (initblob_state[instance].remaining != 0) {
-        // don't run detection engines if we haven't sent out the initblobs
-        return nullptr;
-    }
+    // if (initblob_state[instance].remaining != 0) {
+    //     // don't run detection engines if we haven't sent out the initblobs
+    //     return nullptr;
+    // }
 
     uint16_t bytecount = MIN(8192U, _port[instance]->available());
 

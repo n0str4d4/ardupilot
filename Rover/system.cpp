@@ -64,10 +64,11 @@ void Rover::init_ardupilot()
     barometer.set_log_baro_bit(MASK_LOG_IMU);
     barometer.calibrate();
 
+    
+#endif
     // Do GPS init
     gps.set_log_gps_bit(MASK_LOG_GPS);
     gps.init();
-#endif
 
     ins.set_log_raw_bit(MASK_LOG_IMU_RAW);
 
