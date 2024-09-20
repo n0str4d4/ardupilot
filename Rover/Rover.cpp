@@ -467,7 +467,7 @@ void Rover::one_second_loop(void)
     // cope with changes to mavlink system ID
     mavlink_system.sysid = g.sysid_this_mav;
     
-    AP::can().can_frame_receive_loop();
+    //AP::can().can_frame_receive_loop();
 
 #if AP_ADVANCED_RPI_RUN_ENABLED
     // attempt to update home position and baro calibration if not armed:

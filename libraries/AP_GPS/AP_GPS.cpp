@@ -699,14 +699,14 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
         _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
         dstate->last_baud_change_ms = now;
 
-        if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
-            send_blob_start(instance);
-        }
+        // if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
+        //     send_blob_start(instance);
+        // }
     }
 
-    if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
-        send_blob_update(instance);
-    }
+    // if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
+    //     send_blob_update(instance);
+    // }
 
     switch (GPS_Type(type)) {
 #if AP_GPS_SBF_ENABLED
@@ -856,15 +856,18 @@ void AP_GPS::update_instance(uint8_t instance)
     if (drivers[instance] == nullptr) {
         // we don't yet know the GPS type of this one, or it has timed
         // out and needs to be re-initialised
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Detecting Instance because this driver is null");
+
         detect_instance(instance);
         return;
     }
 
-    if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
-        send_blob_update(instance);
-    }
+    // if (_auto_config >= GPS_AUTO_CONFIG_ENABLE_SERIAL_ONLY) {
+    //     send_blob_update(instance);
+    // }
 
     // we have an active driver for this instance
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Reading From GPS via driver[inst]->read()");
     bool result = drivers[instance]->read();
     uint32_t tnow = AP_HAL::millis();
 
@@ -872,6 +875,17 @@ void AP_GPS::update_instance(uint8_t instance)
     // has expired, re-initialise the GPS. This will cause GPS
     // detection to run again
     bool data_should_be_logged = false;
+    // if(!result)
+    //     {
+    //              if (tnow - timing[instance].last_message_time_ms > GPS_TIMEOUT_MS) {
+    //                 _port[instance]->end();
+    //                 _port[instance]->begin(9600);
+    //                 _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+                   
+    //     hal.console->printf("GPS UART re-initialized at 9600 baud\n");
+                   
+    //              }
+    //     }
     if (!result) {
         if (tnow - timing[instance].last_message_time_ms > GPS_TIMEOUT_MS) {
             memset((void *)&state[instance], 0, sizeof(state[instance]));
@@ -889,15 +903,24 @@ void AP_GPS::update_instance(uint8_t instance)
             } else {
                 // free the driver before we run the next detection, so we
                 // don't end up with two allocated at any time
-                delete drivers[instance];
-                drivers[instance] = nullptr;
-                state[instance].status = NO_GPS;
+                // _port[instance]->end();
+                // delete drivers[instance];
+                // drivers[instance] = nullptr;
+                // state[instance].status = NO_GPS;
+
+                // instead of deleting the driver, just close the connection/empty buffers, and re-init 
+                // proves better than the re-detection mechanism which is hanging on the begin(baud) after driver deletion
+                // static method - maybe in future revisions combine the two, fall back to this fix if the detection failed for 3 times or so.
+                _port[instance]->end();
+                _port[instance]->begin(9600);
+                _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
             }
             // log this data as a "flag" that the GPS is no longer
             // valid (see PR#8144)
             data_should_be_logged = true;
         }
-    } else {
+    } else if(result)
+    {
         if (state[instance].corrected_timestamp_updated) {
             // set the timestamp for this messages based on
             // set_uart_timestamp() or per specific transport in backend

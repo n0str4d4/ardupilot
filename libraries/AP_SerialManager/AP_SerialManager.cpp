@@ -479,13 +479,19 @@ void AP_SerialManager::init()
                     // begin is handled by AP_Frsky_telem library
                     break;
                 case SerialProtocol_GPS:
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP_Serial Manager - Init GPS Serial Instance of ID %d with baudrate 9600", i);
                     uart->begin(9600);
                     uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+
+                    //uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
                     break;
                 case SerialProtocol_GPS2:
-                    uart->begin(state[i].baudrate(),
-                                         AP_SERIALMANAGER_GPS_BUFSIZE_RX,
-                                         AP_SERIALMANAGER_GPS_BUFSIZE_TX);
+                    //uart->begin(9600);
+                    //uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+
+                    // uart->begin(state[i].baudrate(),
+                    //                      AP_SERIALMANAGER_GPS_BUFSIZE_RX,
+                    //                      AP_SERIALMANAGER_GPS_BUFSIZE_TX);
                     break;
                 case SerialProtocol_AlexMos:
                     // Note baudrate is hardcoded to 115200

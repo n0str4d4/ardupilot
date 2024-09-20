@@ -1,4 +1,6 @@
 #include "UARTDevice.h"
+#include <GCS_MAVLink/GCS.h>
+
 
 #include <errno.h>
 #include <fcntl.h>
@@ -91,6 +93,7 @@ void UARTDevice::_disable_crlf()
     struct termios2 t = { 0 };
 
     if (ioctl(_fd, TCGETS2, &t) != 0) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "within _disable_crlf()");
         ::fprintf(stderr, "Failed to read serial options for %s - %s\n",
                   _device_path, strerror(errno));
         return;
@@ -114,6 +117,7 @@ void UARTDevice::set_speed(uint32_t baudrate)
     struct termios2 tio = { 0 };
 
     if (ioctl(_fd, TCGETS2, &tio) != 0) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "within set_speed()");
         ::fprintf(stderr, "Failed to read serial options for %s - %s\n",
                   _device_path, strerror(errno));
         return;
@@ -141,6 +145,7 @@ void UARTDevice::set_flow_control(AP_HAL::UARTDriver::flow_control flow_control_
     struct termios2 t = { 0 };
 
     if (ioctl(_fd, TCGETS2, &t) != 0) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "within set_flow_control()");
         ::fprintf(stderr, "Failed to read serial options for %s - %s\n",
                   _device_path, strerror(errno));
         return;
@@ -166,6 +171,8 @@ void UARTDevice::set_parity(int v)
     struct termios2 t = { 0 };
 
     if (ioctl(_fd, TCGETS2, &t) != 0) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "within set_parity()");
+
         ::fprintf(stderr, "Failed to read serial options for %s - %s\n",
                   _device_path, strerror(errno));
         return;

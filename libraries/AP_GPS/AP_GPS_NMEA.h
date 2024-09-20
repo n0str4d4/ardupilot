@@ -72,6 +72,8 @@ public:
     // get lag in seconds
     bool get_lag(float &lag_sec) const override;
 
+
+
 #if HAL_LOGGING_ENABLED
     void Write_AP_Logger_Log_Startup_messages() const override;
 #endif
