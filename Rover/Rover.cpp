@@ -85,7 +85,7 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
     SCHED_TASK(set_servos,            400,    200,  15),
     SCHED_TASK_CLASS(AP_Baro,             &rover.barometer,        update,         10,  200,  21),
 #endif
-    SCHED_TASK_CLASS(AP_GPS,              &rover.gps,              update,         50,  300,  18),
+    SCHED_TASK_CLASS(AP_GPS,              &rover.gps,              update,         10,  300,  18),
 
 #if AP_BEACON_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AP_Beacon,           &rover.g2.beacon,        update,         50,  200,  24),
@@ -102,8 +102,8 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
     SCHED_TASK(update_logging1,        10,    200,  45),
     SCHED_TASK(update_logging2,        10,    200,  48),
 #endif
-    SCHED_TASK_CLASS(GCS,                 (GCS*)&rover._gcs,       update_receive,                    400,    500,  51),
-    SCHED_TASK_CLASS(GCS,                 (GCS*)&rover._gcs,       update_send,                       400,   1000,  54),
+    SCHED_TASK_CLASS(GCS,                 (GCS*)&rover._gcs,       update_receive,                    10,    500,  51),
+    SCHED_TASK_CLASS(GCS,                 (GCS*)&rover._gcs,       update_send,                       100,   1500,  54),
 #if AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(RC_Channels,         (RC_Channels*)&rover.g2.rc_channels, read_mode_switch,        7,    200,  57),
     SCHED_TASK_CLASS(RC_Channels,         (RC_Channels*)&rover.g2.rc_channels, read_aux_all,           10,    200,  60),
@@ -130,7 +130,7 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
     SCHED_TASK(ekf_check,              10,    100,  87),
     SCHED_TASK_CLASS(ModeSmartRTL,        &rover.mode_smartrtl,    save_position,   3,  200,  90),
 #endif
-    SCHED_TASK(one_second_loop,         1,   2000,  96),
+    SCHED_TASK(one_second_loop,         1, 500,  93),
 #if HAL_SPRAYER_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AC_Sprayer,          &rover.g2.sprayer,       update,          3,  90,  99),
 #endif
@@ -467,7 +467,11 @@ void Rover::one_second_loop(void)
     // cope with changes to mavlink system ID
     mavlink_system.sysid = g.sysid_this_mav;
     
-    //AP::can().can_frame_receive_loop();
+
+    // this function should update the status of CAN-connected actuators by sending out RTR Frames 
+    // send Telemetry to GCS via custom MAVLink messages instead of MAVCAN type, to replace the need for CAN_FORWARD
+    // CAN_FORWARDING and GPS Sensor Data Update are not working together...
+    AP::can().can_frame_receive_loop();
 
 #if AP_ADVANCED_RPI_RUN_ENABLED
     // attempt to update home position and baro calibration if not armed:

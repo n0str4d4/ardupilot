@@ -150,7 +150,7 @@ void AP_CANManager::init()
 
     bool can_initialised = false;
 
-    can_initialised = hal_mutable.can[0]->init(500000, AP_HAL::CANIface::NormalMode);
+    can_initialised = hal_mutable.can[0]->init(625000, AP_HAL::CANIface::NormalMode);
         
 
     if (!can_initialised) {
@@ -162,6 +162,12 @@ void AP_CANManager::init()
     else {
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Initialised CAN Interface 0 Successfully" );
+    //hal_mutable.can[0]->register_frame_callback()
+    // if (!hal.can[0]->register_frame_callback(
+    //             FUNCTOR_BIND_MEMBER(&AP_CANManager::can_frame_callback, void, uint8_t, const AP_HAL::CANFrame &))) {
+    //         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Registering callback on bus 0 failed - From within AP_CANMANAGER Init");
+            
+    //     }
 
 
     log_text(AP_CANManager::LOG_INFO, LOG_TAG, "CAN Interface %d initialized well", 0);
@@ -567,6 +573,7 @@ bool AP_CANManager::handle_can_forward(mavlink_channel_t chan, const mavlink_com
     }
     if (!hal.can[bus]->register_frame_callback(
             FUNCTOR_BIND_MEMBER(&AP_CANManager::can_frame_callback, void, uint8_t, const AP_HAL::CANFrame &))) {
+         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Registering callback on bus %i failed", bus);
         return false;
     }
     can_forward.last_callback_enable_ms = AP_HAL::millis();
@@ -575,13 +582,13 @@ bool AP_CANManager::handle_can_forward(mavlink_channel_t chan, const mavlink_com
     can_forward.component_id = msg.compid;
 
     // remove registration on other buses, allowing for bus change in the GUI tool
-    for (uint8_t i=0; i<HAL_NUM_CAN_IFACES; i++) {
-        if (i != bus && hal.can[i] != nullptr) {
-            hal.can[i]->register_frame_callback(nullptr);
-        }
-    }
+    // for (uint8_t i=0; i<HAL_NUM_CAN_IFACES; i++) {
+    //     if (i != bus && hal.can[i] != nullptr) {
+    //         hal.can[i]->register_frame_callback(nullptr);
+    //     }
+    // }
 
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - You have reached the AP_CANManager::handle_can_forward()" );
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Successfuly registered a callback on can bus via AP_CANManager::handle_can_forward()" );
     return true;
 }
 
@@ -781,34 +788,34 @@ void AP_CANManager::can_frame_callback(uint8_t bus, const AP_HAL::CANFrame &fram
 {
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Inside can_frame_callback() - CAN Frame is detected on the bus" );
     WITH_SEMAPHORE(can_forward.sem);
-    if (can_forward.frame_counter++ == 100) {
-        // check every 100 frames for disabling CAN_FRAME send
-        // we stop sending after 5s if the client stops
-        // sending MAV_CMD_CAN_FORWARD requests
-        if (AP_HAL::millis() - can_forward.last_callback_enable_ms > 5000) {
-            hal.can[bus]->register_frame_callback(nullptr);
-            return;
-        }
-        can_forward.frame_counter = 0;
-    }
+    // if (can_forward.frame_counter++ == 100) {
+    //     // check every 100 frames for disabling CAN_FRAME send
+    //     // we stop sending after 5s if the client stops
+    //     // sending MAV_CMD_CAN_FORWARD requests
+    //     if (AP_HAL::millis() - can_forward.last_callback_enable_ms > 5000) {
+    //         hal.can[bus]->register_frame_callback(nullptr);
+    //         return;
+    //     }
+    //     can_forward.frame_counter = 0;
+    // }
     WITH_SEMAPHORE(comm_chan_lock(can_forward.chan));
-    if (can_forward.filter_ids != nullptr) {
-        // work out ID of this frame
-        uint16_t id = 0;
-        if ((frame.id&0xff) != 0) {
-            // not anonymous
-            if (frame.id & 0x80) {
-                // service message
-                id = uint8_t(frame.id>>16);
-            } else {
-                // message frame
-                id = uint16_t(frame.id>>8);
-            }
-        }
-        if (!bisect_search_uint16(can_forward.filter_ids, can_forward.num_filter_ids, id)) {
-            return;
-        }
-    }
+    // if (can_forward.filter_ids != nullptr) {
+    //     // work out ID of this frame
+    //     uint16_t id = 0;
+    //     if ((frame.id&0xff) != 0) {
+    //         // not anonymous
+    //         if (frame.id & 0x80) {
+    //             // service message
+    //             id = uint8_t(frame.id>>16);
+    //         } else {
+    //             // message frame
+    //             id = uint16_t(frame.id>>8);
+    //         }
+    //     }
+    //     if (!bisect_search_uint16(can_forward.filter_ids, can_forward.num_filter_ids, id)) {
+    //         return;
+    //     }
+    // }
     const uint8_t data_len = AP_HAL::CANFrame::dlcToDataLength(frame.dlc);
     if (frame.isCanFDFrame()) {
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Inside can_frame_callback() - IT is a CANFD Frame" );
@@ -839,7 +846,7 @@ void AP_CANManager::can_frame_receive_loop(){
     AP_HAL::CANIface::CanIOFlags flags;
 
     int16_t recv_status = hal.can[0]->receive(received_frame, timestamp, flags);
-
+    hal.console->printf("received Status of CAN Bus Msg: %d", recv_status);
 
     if (recv_status > 0) {
        hal.console->printf("Received CAN frame: ID=0x%03X, Data=", received_frame.id);
@@ -871,7 +878,7 @@ void AP_CANManager::can_frame_receive_loop(){
     }
 
     // Add a delay to avoid flooding the CAN bus
-    hal.scheduler->delay(1000);
+    hal.scheduler->delay(100);
  
 
 }
