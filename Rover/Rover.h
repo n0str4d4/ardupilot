@@ -295,6 +295,7 @@ private:
     void update_logging1(void);
     void update_logging2(void);
     void one_second_loop(void);
+    void update_ecu_status(void);
     void update_current_mode(void);
 
     // balance_bot.cpp

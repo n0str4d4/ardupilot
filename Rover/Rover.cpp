@@ -101,6 +101,8 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
 #if HAL_LOGGING_ENABLED
     SCHED_TASK(update_logging1,        10,    200,  45),
     SCHED_TASK(update_logging2,        10,    200,  48),
+    SCHED_TASK(update_ecu_status,         0.1, 1000,  49),
+
 #endif
     SCHED_TASK_CLASS(GCS,                 (GCS*)&rover._gcs,       update_receive,                    10,    500,  51),
     SCHED_TASK_CLASS(GCS,                 (GCS*)&rover._gcs,       update_send,                       100,   1500,  54),
@@ -131,6 +133,8 @@ const AP_Scheduler::Task Rover::scheduler_tasks[] = {
     SCHED_TASK_CLASS(ModeSmartRTL,        &rover.mode_smartrtl,    save_position,   3,  200,  90),
 #endif
     SCHED_TASK(one_second_loop,         1, 500,  93),
+    //SCHED_TASK(one_second_loop,         1, 3000,  50),
+
 #if HAL_SPRAYER_ENABLED && AP_ADVANCED_RPI_RUN_ENABLED
     SCHED_TASK_CLASS(AC_Sprayer,          &rover.g2.sprayer,       update,          3,  90,  99),
 #endif
@@ -446,6 +450,12 @@ void Rover::update_logging2(void)
 }
 #endif  // HAL_LOGGING_ENABLED
 
+
+void Rover::update_ecu_status(void){
+    AP::can().can_frame_periodical_rtr_1();
+    AP::can().can_frame_periodical_rtr_2();
+}
+
 /*
   once a second events
  */
@@ -471,7 +481,11 @@ void Rover::one_second_loop(void)
     // this function should update the status of CAN-connected actuators by sending out RTR Frames 
     // send Telemetry to GCS via custom MAVLink messages instead of MAVCAN type, to replace the need for CAN_FORWARD
     // CAN_FORWARDING and GPS Sensor Data Update are not working together...
+    
+   
+    
     AP::can().can_frame_receive_loop();
+
 
 #if AP_ADVANCED_RPI_RUN_ENABLED
     // attempt to update home position and baro calibration if not armed:

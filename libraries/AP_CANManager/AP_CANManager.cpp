@@ -207,7 +207,7 @@ void AP_CANManager::init()
         hal_mutable.scheduler->delay(5000);
 
 
-    for (int ij = 0; ij < 10; ij++){
+    for (int ij = 0; ij < 3; ij++){
     // Attempt to receive a CAN frame
     AP_HAL::CANFrame received_frame;
     uint64_t timestamp;
@@ -835,6 +835,79 @@ void AP_CANManager::can_frame_callback(uint8_t bus, const AP_HAL::CANFrame &fram
 }
 #endif // HAL_GCS_ENABLED
 
+void AP_CANManager::can_frame_periodical_rtr_1()
+{
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Sending RTR Part 1");
+
+    AP_HAL::CANFrame frame;
+     //send RTR Frames on 0x01, 0x02, 0x03, 0x04
+     for(int i = 0; i < 2; i++){
+        
+        uint32_t id = _can_ecu_rtr_sids[i];
+        uint8_t len = 0;
+        const uint8_t data[8] = {0x00};//,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
+        
+        frame = AP_HAL::CANFrame(id, data, len);
+        
+        const int16_t retcode = hal.can[0]->send(frame,
+                                                         0,
+                                                         AP_HAL::CANIface::CanIOFlags());
+        if(retcode == 0){
+            // no space in the CAN output slots, try again later
+            
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Could not send RTR Frame with ID %i", frame.id);
+            break;
+        }                                                   
+        
+     }
+     hal.scheduler->delay(50);
+
+    //  struct BufferFrame frame {
+    //         bus : p.bus,
+    //         frame : AP_HAL::CANFrame(p.id, p.data, p.len)
+    //     };
+    //     WITH_SEMAPHORE(_sem);
+    //     frame_buffer->push(frame);
+
+}
+
+void AP_CANManager::can_frame_periodical_rtr_2()
+{
+    hal.can[0]->flush_tx();
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Sending RTR Part 2");
+    AP_HAL::CANFrame frame;
+     //send RTR Frames on 0x01, 0x02, 0x03, 0x04
+     for(int i = 2; i < 4; i++){
+        
+        uint32_t id = _can_ecu_rtr_sids[i];
+        uint8_t len = 0;
+        const uint8_t data[8] = {0x00};//,0x00,0x00,0x00,0x00,0x00,0x00,0x00];
+        
+        //GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Sending RTR Part 2 - Frame ID = %i", id);
+
+        frame = AP_HAL::CANFrame(id, data, len);
+        
+        const int16_t retcode = hal.can[0]->send(frame,
+                                                         0,
+                                                         AP_HAL::CANIface::CanIOFlags());
+        if(retcode == 0){
+            // no space in the CAN output slots, try again later
+            
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - Could not send RTR Frame with ID %i", frame.id);
+            break;
+        }                                                   
+        
+     }
+
+    //  struct BufferFrame frame {
+    //         bus : p.bus,
+    //         frame : AP_HAL::CANFrame(p.id, p.data, p.len)
+    //     };
+    //     WITH_SEMAPHORE(_sem);
+    //     frame_buffer->push(frame);
+    
+
+}
 
 
 void AP_CANManager::can_frame_receive_loop(){
@@ -844,14 +917,16 @@ void AP_CANManager::can_frame_receive_loop(){
     AP_HAL::CANFrame received_frame;
     uint64_t timestamp;
     AP_HAL::CANIface::CanIOFlags flags;
+    
+
 
     int16_t recv_status = hal.can[0]->receive(received_frame, timestamp, flags);
-    hal.console->printf("received Status of CAN Bus Msg: %d", recv_status);
+    hal.console->printf("Received Status of CAN Bus Msg: %d", recv_status);
 
     if (recv_status > 0) {
        hal.console->printf("Received CAN frame: ID=0x%03X, Data=", received_frame.id);
         
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager Received CAN frame\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - CANManager Received CAN frame\n");
         
         const uint8_t data_len = AP_HAL::CANFrame::dlcToDataLength(received_frame.dlc);
         
@@ -868,17 +943,17 @@ void AP_CANManager::can_frame_receive_loop(){
                                      0, data_len, received_frame.id, const_cast<uint8_t*>(received_frame.data));
             }
         } else if (recv_status == 0) {
-        hal.console->printf("No CAN frame available\n");
-       GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager No CAN frame available\n");
+        //hal.console->printf("No CAN frame available\n");
+       //GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager No CAN frame available\n");
 
     } else {
         hal.console->printf("Failed to receive CAN frame\n");
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP- CANManager Failed to receive CAN frame\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP - CANManager Failed to receive CAN frame\n");
 
     }
 
     // Add a delay to avoid flooding the CAN bus
-    hal.scheduler->delay(100);
+    hal.scheduler->delay(50);
  
 
 }

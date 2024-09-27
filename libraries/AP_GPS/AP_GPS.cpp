@@ -607,6 +607,7 @@ void AP_GPS::detect_instance(uint8_t instance)
 
     AP_GPS_Backend *new_gps = _detect_instance(instance);
     if (new_gps == nullptr) {
+        _gps_detection_failures++;
         return;
     }
 
@@ -629,6 +630,17 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
     const auto type = params[instance].type;
 
     switch (GPS_Type(type)) {
+    // the first gps driver initialization may hang on UBX PI-CAN due to I/O FD Errors 
+    // workaround to manually initialize it after closing and cleaning buffers with end()
+    case GPS_TYPE_NMEA: 
+            if(_gps_detection_failures > 3)
+                { 
+                _port[instance]->end(); 
+                _port[instance]->begin(9600); 
+                _port[instance]->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
+                return NEW_NOTHROW AP_GPS_NMEA(*this, params[instance], state[instance], _port[instance]);
+                }
+            break;
     // user has to explicitly set the MAV type, do not use AUTO
     // do not try to detect the MAV type, assume it's there
     case GPS_TYPE_MAV:

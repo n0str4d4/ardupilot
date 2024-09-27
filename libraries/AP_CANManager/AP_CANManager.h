@@ -110,6 +110,10 @@ public:
     void handle_can_frame(const mavlink_message_t &msg);
     void handle_can_filter_modify(const mavlink_message_t &msg);
     void can_frame_receive_loop();
+    void can_frame_periodical_rtr_1();
+    void can_frame_periodical_rtr_2();
+
+
 #endif
 
 private:
@@ -156,6 +160,7 @@ private:
     AP_CANDriver* _drivers[HAL_MAX_CAN_PROTOCOL_DRIVERS];
     CANDriver_Params _drv_param[HAL_MAX_CAN_PROTOCOL_DRIVERS];
     AP_CAN::Protocol _driver_type_cache[HAL_MAX_CAN_PROTOCOL_DRIVERS];
+    uint32_t _can_ecu_rtr_sids[4] = {0x01,0x02,0x03,0x04};
 
     AP_Int8 _loglevel;
     uint8_t _num_drivers;
