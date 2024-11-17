@@ -953,6 +953,8 @@ void AP_CANManager::can_frame_receive_loop(){
     }
 
     // Add a delay to avoid flooding the CAN bus
+    // this small delay works well with UBX GPS module, allowing the MAVLink messages to be sent back to GCS
+    // and keeping the CAN Bus callback sharp enough to sense the presence of all exchanged CAN messages
     hal.scheduler->delay(50);
  
 

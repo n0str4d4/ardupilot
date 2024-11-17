@@ -451,6 +451,9 @@ void Rover::update_logging2(void)
 #endif  // HAL_LOGGING_ENABLED
 
 
+// this function should update the status of CAN-connected actuators by sending out RTR Frames 
+// Future revisions: send Telemetry to GCS via custom MAVLink messages instead of MAVCAN type, 
+// to replace the need for CAN_FORWARD, and to properly have a backend driver that updates the ECU instances periodically
 void Rover::update_ecu_status(void){
     AP::can().can_frame_periodical_rtr_1();
     AP::can().can_frame_periodical_rtr_2();
@@ -477,13 +480,9 @@ void Rover::one_second_loop(void)
     // cope with changes to mavlink system ID
     mavlink_system.sysid = g.sysid_this_mav;
     
-
-    // this function should update the status of CAN-connected actuators by sending out RTR Frames 
-    // send Telemetry to GCS via custom MAVLink messages instead of MAVCAN type, to replace the need for CAN_FORWARD
-    // CAN_FORWARDING and GPS Sensor Data Update are not working together...
-    
-   
-    
+    // this function complements the effect of CAN Forward Enable COMMAND 
+    // which by itself is not picking up available CAN messages on the bus, but seems to need polling
+    // listens for new messages on CAN bus 0     
     AP::can().can_frame_receive_loop();
 
 
